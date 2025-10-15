@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Learning Nodejs</title>
+  </head>
+  <body>
+    <h1>Hello Nodejs</h1>
+  </body>
+</html>
+
+<h1>
+  const http = require("http"); const fs = require("fs"); //Reading html: {
+  "content-type": "text/html" } //Reading json: { "content-type":
+  "application/json" } //Reading png: { "content-type": "image/png" }
+  http.createServer((req, res) => { const readStream =
+  fs.createReadStream("./static/index.html"); //file path res.writeHead(200, {
+  "content-type": "text/html" }); readStream.pipe(res); }) .listen(3000);
+</h1>
