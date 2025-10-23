@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 require("dotenv").config();
 const app = express();
+const Task = require("./models/Task");
 
 // Use the environment variable for security
 const ATLAS_URI = process.env.MONGO_URI;
@@ -33,6 +34,18 @@ mongoose
 // Test route
 app.get("/", (req, res) => {
   res.send("Welcome to Task Manager API 🚀");
+});
+
+app.post("/test-task", async (req, res) => {
+  try {
+    const task = await Task.create({
+      title: "Learn Express + MongoDB",
+      description: "Build a simple REST API",
+    });
+    res.json(task);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // Start server
