@@ -6,13 +6,13 @@ import {
   addTask,
   editTask,
   removeTask,
-  searchTasks,
+  // searchTasks,
 } from "../controllers/taskController.js";
 
 const router = express.Router();
 
 router.get("/", getTasks);
-router.get("/search", searchTasks);
+// router.get("/search", searchTasks);
 router.get("/:id", getTask);
 router.post("/", addTask);
 router.put("/:id", editTask);

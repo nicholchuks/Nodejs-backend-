@@ -1,15 +1,12 @@
 // controllers/taskController.js
 import Task from "../models/taskModel.js";
-// import { asyncHandler } from "../utils/asyncHandler.js";
 import asyncHandler from "express-async-handler";
 import ErrorResponse from "../utils/errorResponse.js";
 import { ValidationError, DatabaseError } from "../utils/customErrors.js";
 
-const Task = require("../models/Task");
-
 // GET /api/tasks
 // Description: Fetch tasks with search, filters & pagination
-export const getAllTasks = asyncHandler(async (req, res) => {
+export const getTasks = asyncHandler(async (req, res) => {
   const { search, status, startDate, endDate, page = 1, limit = 5 } = req.query;
 
   // 1️⃣ Create a query object

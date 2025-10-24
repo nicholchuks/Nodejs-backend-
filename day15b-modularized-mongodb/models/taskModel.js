@@ -1,7 +1,4 @@
-// models/taskModel.js
-// const mongoose = require("mongoose");
 import mongoose from "mongoose";
-// const mongoose = require("mongoose");
 
 const taskSchema = new mongoose.Schema(
   {
@@ -25,4 +22,7 @@ const taskSchema = new mongoose.Schema(
   { timestamps: true } // automatically adds createdAt and updatedAt
 );
 
-module.exports = mongoose.model("Task", taskSchema);
+const Task = mongoose.model("Task", taskSchema);
+
+// Changed from CommonJS (module.exports) to ES Module Default Export (export default)
+export default Task;
