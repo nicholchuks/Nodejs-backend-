@@ -1,5 +1,5 @@
 {
-  "name": "day15b-modularized-mongodb",
+  "name": "day16-authentication",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -9,12 +9,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "description": "",
   "dependencies": {
+    "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2"
-  },
-  "description": ""
+  }
 }
