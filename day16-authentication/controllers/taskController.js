@@ -60,15 +60,32 @@ export const getTask = asyncHandler(async (req, res) => {
   res.json(task);
 });
 
+// export const getTask = asyncHandler(async (req, res) => {
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   res.json(task);
+// });
+
 // CREATE new task
 export const addTask = asyncHandler(async (req, res) => {
-  const { title, description } = req.body;
+  const { title, description, status } = req.body;
+  const userId = req.user.id;
 
   if (!title || !description) {
     return next(new ValidationError("Task title is required"));
   }
 
-  const newTask = await Task.create({ title, description });
+  const newTask = await Task.create({
+    title,
+    description,
+    status,
+    user: userId,
+  });
   res.status(201).json(newTask);
 });
 
@@ -81,9 +98,84 @@ export const editTask = asyncHandler(async (req, res) => {
   res.json(updatedTask);
 });
 
+// export const editTask = asyncHandler(async (req, res) => {
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+//     new: true,
+//   });
+
+//   res.json(updatedTask);
+// });
+
 // DELETE a task
 export const removeTask = asyncHandler(async (req, res) => {
   const deleted = await Task.findByIdAndDelete(req.params.id);
   if (!deleted) return next(new ErrorResponse("Task not found", 404));
   res.json({ message: "Task deleted" });
 });
+
+// export const removeTask = asyncHandler(async (req, res) => {
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   await task.deleteOne();
+//   res.json({ message: "Task deleted successfully" });
+// });
+
+// Toggle a task
+export const toggleTaskCompletion = async (req, res) => {
+  const task = await Task.findById(req.params.id);
+
+  if (!task) {
+    return res.status(404).json({ message: "Task not found" });
+  }
+
+  // Toggle between completed and pending
+  if (task.status === "completed") {
+    task.status = "pending";
+    task.completedAt = null;
+  } else {
+    task.status = "completed";
+    task.completedAt = new Date();
+  }
+
+  const updatedTask = await task.save();
+  res.status(200).json({
+    message: `Task status changed to "${updatedTask.status}"`,
+    task: {
+      id: updatedTask._id,
+      title: updatedTask.title,
+      status: updatedTask.status,
+      completedAt: updatedTask.completedAt,
+      updatedAt: updatedTask.updatedAt,
+    },
+  });
+};
+
+// ✅ Get all completed tasks
+export const getCompletedTasks = async (req, res) => {
+  const completedTasks = await Task.find({ status: "completed" });
+  res.status(200).json({
+    count: completedTasks.length,
+    tasks: completedTasks,
+  });
+};
+
+// ✅ Get all pending tasks
+export const getPendingTasks = async (req, res) => {
+  const pendingTasks = await Task.find({ status: "pending" });
+  res.status(200).json({
+    count: pendingTasks.length,
+    tasks: pendingTasks,
+  });
+};
