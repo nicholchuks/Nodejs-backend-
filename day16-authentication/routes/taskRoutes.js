@@ -14,9 +14,9 @@ import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Public routes (no token required)
-router.get("/", getTasks);
-router.get("/:id", getTask);
+// ✅ Protected routes (token required)
+router.get("/", protect, getTasks);
+router.get("/:id", protect, getTask);
 
 // Filter routes
 router.get("/completed", protect, getCompletedTasks);

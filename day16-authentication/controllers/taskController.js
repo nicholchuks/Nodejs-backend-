@@ -9,20 +9,20 @@ import { ValidationError, DatabaseError } from "../utils/customErrors.js";
 export const getTasks = asyncHandler(async (req, res) => {
   const { search, status, startDate, endDate, page = 1, limit = 5 } = req.query;
 
-  // 1️⃣ Create a query object
   let query = {};
 
-  // 2️⃣ Keyword Search (case-insensitive)
-  if (search) {
-    query.title = { $regex: search, $options: "i" };
+  // 🧍 If the logged-in user is NOT an admin, show only their own tasks
+  if (req.user.role !== "admin") {
+    query.user = req.user._id;
   }
 
-  // 3️⃣ Filter by Status
-  if (status) {
-    query.status = status;
-  }
+  // 🔍 Search
+  if (search) query.title = { $regex: search, $options: "i" };
 
-  // 4️⃣ Date Range Filtering
+  // ⚙️ Status filter
+  if (status) query.status = status;
+
+  // 📅 Date range
   if (startDate && endDate) {
     query.createdAt = {
       $gte: new Date(startDate),
@@ -30,21 +30,20 @@ export const getTasks = asyncHandler(async (req, res) => {
     };
   }
 
-  // 5️⃣ Pagination Logic
+  // ⏩ Pagination
   const skip = (page - 1) * limit;
 
-  // 6️⃣ Fetch Data
+  // 🧾 Fetch tasks based on role
   const tasks = await Task.find(query)
     .skip(skip)
     .limit(Number(limit))
     .sort({ createdAt: -1 });
 
-  // 7️⃣ Total Count for Pagination Info
   const totalTasks = await Task.countDocuments(query);
 
-  // 8️⃣ Send Response
   res.status(200).json({
     success: true,
+    role: req.user.role, // ✅ shows the user's role
     totalTasks,
     currentPage: Number(page),
     totalPages: Math.ceil(totalTasks / limit),
@@ -91,46 +90,38 @@ export const addTask = asyncHandler(async (req, res) => {
 
 // UPDATE a task
 export const editTask = asyncHandler(async (req, res) => {
+  const task = await Task.findById(req.params.id);
+  if (!task) return next(new ErrorResponse("Task not found", 404));
+
+  //  Only allow the owner or admin to update
+  if (task.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Not authorized to edit this task" });
+  }
+
   const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
   });
-  if (!updatedTask) return next(new ErrorResponse("Task not found", 404));
+
   res.json(updatedTask);
 });
 
-// export const editTask = asyncHandler(async (req, res) => {
-//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
-
-//   if (!task) {
-//     res.status(404);
-//     throw new Error("Task not found");
-//   }
-
-//   const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
-//     new: true,
-//   });
-
-//   res.json(updatedTask);
-// });
-
 // DELETE a task
 export const removeTask = asyncHandler(async (req, res) => {
-  const deleted = await Task.findByIdAndDelete(req.params.id);
-  if (!deleted) return next(new ErrorResponse("Task not found", 404));
-  res.json({ message: "Task deleted" });
+  const task = await Task.findById(req.params.id);
+  if (!task) return next(new ErrorResponse("Task not found", 404));
+
+  //  Only allow the owner or admin to delete
+  if (task.user.toString() !== req.user.id && req.user.role !== "admin") {
+    return res
+      .status(403)
+      .json({ message: "Not authorized to delete this task" });
+  }
+
+  await task.deleteOne();
+  res.json({ message: "Task deleted successfully" });
 });
-
-// export const removeTask = asyncHandler(async (req, res) => {
-//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
-
-//   if (!task) {
-//     res.status(404);
-//     throw new Error("Task not found");
-//   }
-
-//   await task.deleteOne();
-//   res.json({ message: "Task deleted successfully" });
-// });
 
 // Toggle a task
 export const toggleTaskCompletion = async (req, res) => {
@@ -179,3 +170,30 @@ export const getPendingTasks = async (req, res) => {
     tasks: pendingTasks,
   });
 };
+
+// export const editTask = asyncHandler(async (req, res) => {
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+//     new: true,
+//   });
+
+//   res.json(updatedTask);
+// });
+
+// export const removeTask = asyncHandler(async (req, res) => {
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   await task.deleteOne();
+//   res.json({ message: "Task deleted successfully" });
+// });
