@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import taskRoutes from "./routes/taskRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
+// import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
@@ -14,7 +15,8 @@ app.use(express.json()); // to parse JSON body
 
 app.use("/api/tasks", taskRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
+// app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

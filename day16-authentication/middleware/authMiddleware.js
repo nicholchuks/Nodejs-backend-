@@ -19,8 +19,8 @@ export const protect = async (req, res, next) => {
       req.user = await User.findById(decoded.id).select("-password");
       next(); // proceed to the next middleware/controller
 
-      console.log("Decoded user:", decoded);
-      console.log("Fetched user:", req.user);
+      // console.log("Decoded user:", decoded);
+      // console.log("Fetched user:", req.user);
     } catch (error) {
       console.error(error);
       res.status(401);
