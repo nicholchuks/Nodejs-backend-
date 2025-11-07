@@ -6,6 +6,8 @@ import authRoutes from "./routes/authRoutes.js";
 // import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
+import configRoutes from "./routes/configRoutes.js";
+import uploadRoutes from "./routes/uploadRoutes.js";
 
 dotenv.config();
 
@@ -17,6 +19,8 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/auth", authRoutes);
 // app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/config", configRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
