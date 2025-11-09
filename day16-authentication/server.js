@@ -8,12 +8,18 @@ import adminRoutes from "./routes/adminRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import configRoutes from "./routes/configRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import helmet from "helmet";
+import { rateLimiter } from "./middleware/rateLimiter.js";
+import { securityMiddleware } from "./middleware/security.js";
 
 dotenv.config();
 
 const app = express();
 
 app.use(express.json()); // to parse JSON body
+app.use(helmet());
+app.use(rateLimiter);
+securityMiddleware(app);
 
 app.use("/api/tasks", taskRoutes);
 app.use("/api/auth", authRoutes);

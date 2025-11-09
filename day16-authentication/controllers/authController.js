@@ -15,16 +15,15 @@ const generateToken = (id) => {
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
 
+  // 1️⃣ Check if user exists
   const userExists = await User.findOne({ email });
-
   if (userExists) {
-    res.status(400);
-    throw new Error("User already exists");
+    throw new ErrorResponse("User already exists", 400);
   }
 
   let profileImage = null;
 
-  // 🖼️ If image is uploaded, send it to Cloudinary
+  // 2️⃣ Upload to Cloudinary (if image exists)
   if (req.file) {
     const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
@@ -36,55 +35,189 @@ export const registerUser = asyncHandler(async (req, res) => {
       );
       streamifier.createReadStream(req.file.buffer).pipe(stream);
     });
-
     profileImage = result.secure_url;
   }
 
-  // 👤 Create new user
+  // 3️⃣ Generate verification token
+  const verificationToken = crypto.randomBytes(20).toString("hex");
+  const verificationTokenExpire = Date.now() + 10 * 60 * 1000; // 10 mins
+
+  // 4️⃣ Create new user (unverified by default)
   const user = await User.create({
     name,
     email,
     password,
     role,
-    profileImage, // may be null if not uploaded
+    profileImage,
+    isVerified: false,
+    verificationToken,
+    verificationTokenExpire,
   });
 
-  if (user) {
+  // 5️⃣ Prepare verification URL
+  const verifyUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/auth/verify/${verificationToken}`;
+
+  const message = `
+    <h2>Welcome, ${user.name}</h2>
+    <p>Thanks for registering! Please verify your email below:</p>
+    <a href="${verifyUrl}" target="_blank">${verifyUrl}</a>
+    <p>This link will expire in 10 minutes.</p>
+  `;
+
+  try {
+    // 6️⃣ Send verification email
+    await sendEmail({
+      to: user.email,
+      subject: "Verify Your Email - Task Tracker",
+      html: message,
+    });
+
     res.status(201).json({
       success: true,
-      message: "Registration successful",
-      user: {
-        _id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        profileImage: user.profileImage,
-      },
+      message:
+        "Registration successful! Please check your email to verify your account.",
       token: generateToken(user._id),
     });
-  } else {
+  } catch (error) {
+    // If email sending fails, clear token fields
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    throw new ErrorResponse("Email could not be sent", 500);
+  }
+});
+
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+
+  // 1️⃣ Find user with this token and valid expiry
+  const user = await User.findOne({
+    verificationToken: token,
+    verificationTokenExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ErrorResponse("Invalid or expired verification link", 400);
+  }
+
+  // 2️⃣ Mark user as verified
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  user.verificationTokenExpire = undefined;
+
+  await user.save();
+
+  // 3️⃣ Respond to client
+  res.status(200).json({
+    success: true,
+    message: "Email verified successfully! You can now log in.",
+  });
+});
+
+export const resendVerificationEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  // 1️⃣ Find the user
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error("No user found with this email.");
+  }
+
+  // 2️⃣ Check if already verified
+  if (user.isVerified) {
     res.status(400);
-    throw new Error("Invalid user data");
+    throw new Error("This account is already verified.");
+  }
+
+  // 3️⃣ Generate a new verification token
+  const verificationToken = crypto.randomBytes(32).toString("hex");
+  user.verificationToken = crypto
+    .createHash("sha256")
+    .update(verificationToken)
+    .digest("hex");
+  user.verificationTokenExpire = Date.now() + 15 * 60 * 1000; // expires in 15 min
+  await user.save({ validateBeforeSave: false });
+
+  // 4️⃣ Create verification URL
+  const verifyUrl = `${req.protocol}://${req.get(
+    "host"
+  )}/api/auth/verify/${verificationToken}`;
+
+  // 5️⃣ Compose email
+  const message = `
+    <h2>Hello ${user.name},</h2>
+    <p>We noticed you haven’t verified your account yet.</p>
+    <p>Please click the link below to verify your email:</p>
+    <a href="${verifyUrl}" target="_blank">${verifyUrl}</a>
+    <p>This link will expire in 15 minutes.</p>
+  `;
+
+  // 6️⃣ Send email
+  try {
+    await sendEmail({
+      to: user.email,
+      subject: "Resend: Verify Your Email",
+      html: message,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Verification email resent successfully.",
+    });
+  } catch (error) {
+    user.verificationToken = undefined;
+    user.verificationTokenExpire = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    res.status(500);
+    throw new Error("Email could not be sent. Try again later.");
   }
 });
 
 // Login user
-export const loginUser = asyncHandler(async (req, res, next) => {
+export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  // Check if user exists
+  // 1️⃣ Check if user exists
   const user = await User.findOne({ email });
   if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    res.status(400);
+    throw new Error("Invalid credentials");
   }
 
-  // Validate password
+  // 2️⃣ Check if email is verified
+  if (!user.isVerified) {
+    res.status(403);
+    throw new Error(
+      "Please verify your email before logging in. Check your inbox."
+    );
+  }
+
+  // 3️⃣ Validate password
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    res.status(400);
+    throw new Error("Invalid credentials");
   }
 
-  res.status(200).json({ message: "Login successfully!" });
+  // 4️⃣ Generate token and send response
+  res.status(200).json({
+    success: true,
+    message: "Login successful!",
+    token: generateToken(user._id),
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+    },
+  });
 });
 
 // 📩 Forgot Password
