@@ -180,6 +180,21 @@ export const resendVerificationEmail = asyncHandler(async (req, res) => {
 });
 
 // Login user
+// 🔐 Login user (with secure cookie)
+
+// Generate Access Token
+const generateAccessToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+};
+
+// Generate Refresh Token
+const generateRefreshToken = (id) => {
+  return jwt.sign({ id }, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: "7d",
+  });
+};
+
+// Login user
 export const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -187,29 +202,46 @@ export const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email });
   if (!user) {
     res.status(400);
-    throw new Error("Invalid credentials");
+    throw new ErrorResponse("Invalid credentials", 400);
   }
 
-  // 2️⃣ Check if email is verified
+  // 2️⃣ Check if verified
   if (!user.isVerified) {
     res.status(403);
-    throw new Error(
-      "Please verify your email before logging in. Check your inbox."
-    );
+    throw new ErrorResponse("Please verify your email before logging in.", 403);
   }
 
-  // 3️⃣ Validate password
+  // 3️⃣ Check password
   const isMatch = await user.matchPassword(password);
   if (!isMatch) {
     res.status(400);
-    throw new Error("Invalid credentials");
+    throw new ErrorResponse("Invalid credentials", 400);
   }
 
-  // 4️⃣ Generate token and send response
+  // 4️⃣ Generate tokens
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  // 5️⃣ Send tokens securely via cookies
+  res.cookie("token", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+
+  // 6️⃣ Respond
   res.status(200).json({
     success: true,
     message: "Login successful!",
-    token: generateToken(user._id),
+    token: accessToken,
     user: {
       id: user._id,
       name: user.name,
@@ -295,6 +327,34 @@ export const resetPassword = asyncHandler(async (req, res) => {
     success: true,
     message:
       "Password reset successful. You can now log in with your new password.",
+  });
+});
+
+// 🚪 Logout user (clear cookie)
+export const logoutUser = asyncHandler(async (req, res) => {
+  // 🧹 Clear access token cookie
+  res.cookie("token", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    expires: new Date(0),
+  });
+
+  // 🧹 Clear refresh token cookie (if implemented)
+  res.cookie("refreshToken", "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    expires: new Date(0),
+  });
+
+  // 🧠 Prevent caching of authenticated responses
+  res.set("Cache-Control", "no-store");
+  res.set("Pragma", "no-cache");
+
+  res.status(200).json({
+    success: true,
+    message: "Logout successful. Authentication cookies cleared.",
   });
 });
 
