@@ -1,3 +1,35 @@
+/**
+ * @openapi
+ * tags:
+ *   name: Upload
+ *   description: File upload endpoints
+ */
+
+/**
+ * @openapi
+ * /api/upload:
+ *   post:
+ *     summary: Upload an image
+ *     tags: [Upload]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Upload successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UploadResponse'
+ */
+
 // routes/uploadRoutes.js
 import express from "express";
 import {

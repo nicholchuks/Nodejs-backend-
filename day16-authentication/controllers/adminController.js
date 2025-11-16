@@ -4,9 +4,6 @@ import User from "../models/userModel.js";
 import Task from "../models/taskModel.js";
 import ErrorResponse from "../utils/errorResponse.js";
 
-// @desc    Get platform stats (admin only)
-// @route   GET /api/admin/stats
-// @access  Private/Admin
 export const getAdminStats = asyncHandler(async (req, res) => {
   // 📊 Count total users and tasks
   const totalUsers = await User.countDocuments();

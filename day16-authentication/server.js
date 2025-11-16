@@ -13,6 +13,9 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js";
 import { securityMiddleware } from "./middleware/securityMiddleware.js";
 
+import { swaggerUi, swaggerSpec } from "./api-docs/swagger.js";
+import { Server } from "socket.io";
+
 dotenv.config();
 
 const app = express();
@@ -24,6 +27,7 @@ app.use(cookieParser());
 
 //  Security middlewares (Helmet, XSS, CORS, etc.)
 securityMiddleware(app);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 //  Routes
 app.use("/api/tasks", taskRoutes);
@@ -41,8 +45,26 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("Connected to MongoDB");
-    app.listen(process.env.PORT, () =>
+    const server = app.listen(process.env.PORT, () =>
       console.log(` Server running on port ${process.env.PORT}`)
     );
+    // ------------------- Socket.io Setup -------------------
+    const io = new Server(server, {
+      cors: {
+        origin: "*", // Replace with your frontend URL in production
+        methods: ["GET", "POST"],
+      },
+    });
+
+    // Make io accessible in controllers
+    app.set("io", io);
+
+    io.on("connection", (socket) => {
+      console.log("A user connected:", socket.id);
+
+      socket.on("disconnect", () => {
+        console.log("User disconnected:", socket.id);
+      });
+    });
   })
   .catch((err) => console.error("MongoDB connection error:", err));
