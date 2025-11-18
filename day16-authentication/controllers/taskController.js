@@ -3,6 +3,7 @@ import Task from "../models/taskModel.js";
 import asyncHandler from "express-async-handler";
 import ErrorResponse from "../utils/errorResponse.js";
 import { ValidationError, DatabaseError } from "../utils/customErrors.js";
+import { emitAdminStats } from "./adminController.js";
 
 // GET /api/tasks
 // Description: Fetch tasks with search, filters & pagination
@@ -59,17 +60,6 @@ export const getTask = asyncHandler(async (req, res) => {
   res.json(task);
 });
 
-// export const getTask = asyncHandler(async (req, res) => {
-//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
-
-//   if (!task) {
-//     res.status(404);
-//     throw new Error("Task not found");
-//   }
-
-//   res.json(task);
-// });
-
 // CREATE new task
 export const addTask = asyncHandler(async (req, res) => {
   const { title, description, status } = req.body;
@@ -85,6 +75,16 @@ export const addTask = asyncHandler(async (req, res) => {
     status,
     user: userId,
   });
+
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers"); // we'll store this globally
+
+  // After the private emit
+  io.to(req.user._id.toString()).emit("taskCreated", { task: newTask });
+
+  // Update admin dashboard
+  await emitAdminStats(io, onlineUsers);
+
   res.status(201).json(newTask);
 });
 
@@ -104,6 +104,14 @@ export const editTask = asyncHandler(async (req, res) => {
     new: true,
   });
 
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers"); // we'll store this globally
+
+  // After the private emit
+  io.to(req.user._id.toString()).emit("taskUpdated", { task: updatedTask });
+
+  // Update admin dashboard
+  await emitAdminStats(io, onlineUsers);
   res.json(updatedTask);
 });
 
@@ -120,6 +128,13 @@ export const removeTask = asyncHandler(async (req, res) => {
   }
 
   await task.deleteOne();
+
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers");
+
+  io.to(task.user.toString()).emit("taskDeleted", { taskId: req.params.id });
+  await emitAdminStats(io, onlineUsers);
+
   res.json({ message: "Task deleted successfully" });
 });
 
@@ -141,6 +156,13 @@ export const toggleTaskCompletion = async (req, res) => {
   }
 
   const updatedTask = await task.save();
+
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers");
+
+  io.to(task.user.toString()).emit("taskToggled", { task: updatedTask });
+  await emitAdminStats(io, onlineUsers);
+
   res.status(200).json({
     message: `Task status changed to "${updatedTask.status}"`,
     task: {
@@ -154,22 +176,64 @@ export const toggleTaskCompletion = async (req, res) => {
 };
 
 // ✅ Get all completed tasks
-export const getCompletedTasks = async (req, res) => {
-  const completedTasks = await Task.find({ status: "completed" });
+export const getCompletedTasks = asyncHandler(async (req, res) => {
+  const completedTasks = await Task.find({
+    status: "completed",
+    user: req.user._id,
+  });
+
+  // Emit updated completed tasks count & list
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers");
+  io.to(req.user._id.toString()).emit("completedTasksUpdated", {
+    tasks: completedTasks,
+  });
+  await emitAdminStats(io, onlineUsers);
+
   res.status(200).json({
     count: completedTasks.length,
     tasks: completedTasks,
   });
-};
+});
 
 // ✅ Get all pending tasks
-export const getPendingTasks = async (req, res) => {
-  const pendingTasks = await Task.find({ status: "pending" });
+export const getPendingTasks = asyncHandler(async (req, res) => {
+  const pendingTasks = await Task.find({
+    status: "pending",
+    user: req.user._id,
+  });
+
+  // Emit updated pending tasks count & list
+  const io = req.app.get("io");
+  const onlineUsers = req.app.get("onlineUsers");
+  io.to(req.user._id.toString()).emit("pendingTasksUpdated", {
+    tasks: pendingTasks,
+  });
+  await emitAdminStats(io, onlineUsers);
+
   res.status(200).json({
     count: pendingTasks.length,
     tasks: pendingTasks,
   });
-};
+});
+
+// ✅ Get all completed tasks
+// export const getCompletedTasks = async (req, res) => {
+//   const completedTasks = await Task.find({ status: "completed" });
+//   res.status(200).json({
+//     count: completedTasks.length,
+//     tasks: completedTasks,
+//   });
+// };
+
+// // ✅ Get all pending tasks
+// export const getPendingTasks = async (req, res) => {
+//   const pendingTasks = await Task.find({ status: "pending" });
+//   res.status(200).json({
+//     count: pendingTasks.length,
+//     tasks: pendingTasks,
+//   });
+// };
 
 // export const editTask = asyncHandler(async (req, res) => {
 //   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
@@ -196,4 +260,16 @@ export const getPendingTasks = async (req, res) => {
 
 //   await task.deleteOne();
 //   res.json({ message: "Task deleted successfully" });
+// });
+
+// export const getTask = asyncHandler(async (req, res) => {
+
+//   const task = await Task.findOne({ _id: req.params.id, user: req.user._id });
+
+//   if (!task) {
+//     res.status(404);
+//     throw new Error("Task not found");
+//   }
+
+//   res.json(task);
 // });
