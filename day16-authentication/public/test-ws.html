@@ -1,0 +1,69 @@
+<!-- <script>
+  const token = prompt("Enter your JWT token:");
+
+  const socket = io("http://localhost:5000", {
+    transports: ["websocket"],
+    auth: {
+      token: token,
+    },
+  });
+
+  socket.on("connect", () => {
+    log("🟢 Connected to server");
+  });
+
+  socket.on("connect_error", (err) => {
+    log("🔴 Connection error: " + err.message);
+  });
+
+  socket.on("disconnect", () => {
+    log("🔵 WebSocket disconnected");
+  });
+
+  function log(message) {
+    const box = document.getElementById("log");
+    box.innerHTML += message + "<br>";
+  }
+</script> -->
+
+<!DOCTYPE html>
+<html>
+  <body>
+    <h2>Socket.IO Test Listener</h2>
+    <pre id="log"></pre>
+
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script>
+      const log = (msg) => {
+        document.getElementById("log").textContent += msg + "\n";
+      };
+
+      const socket = io("http://localhost:5000", {
+        auth: {
+          token:
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MWNmZWFiNWNmNGU4NzhiYzI5YTg5MiIsImlhdCI6MTc2MzYyMjkyOCwiZXhwIjoxNzYzNjIzODI4fQ.UbXZV9rlUC8bW7HBbMuCyo5cEUHGSr-U1QYvJEAIwCM", // Replace with your user token
+        },
+      });
+
+      socket.on("connect", () => log("Connected!"));
+
+      socket.on("taskCreated", (data) =>
+        log("TASK CREATED: " + JSON.stringify(data))
+      );
+      socket.on("taskUpdated", (data) =>
+        log("TASK UPDATED: " + JSON.stringify(data))
+      );
+      socket.on("taskDeleted", (data) =>
+        log("TASK DELETED: " + JSON.stringify(data))
+      );
+      socket.on("taskToggled", (data) =>
+        log("TASK TOGGLED: " + JSON.stringify(data))
+      );
+      socket.on("onlineUsersUpdated", (data) =>
+        log("ONLINE USERS: " + JSON.stringify(data))
+      );
+
+      socket.on("disconnect", () => log("Disconnected"));
+    </script>
+  </body>
+</html>

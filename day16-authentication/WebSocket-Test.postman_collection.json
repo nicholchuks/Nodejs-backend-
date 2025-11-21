@@ -1,0 +1,140 @@
+{
+  "info": {
+    "name": "WebSocket Test Collection",
+    "_postman_id": "ws-auth-test-001",
+    "description": "Test Socket.io WebSocket events with authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Connect WebSocket",
+      "request": {
+        "url": "ws://localhost:5000/socket.io/?EIO=4&transport=websocket&token={{JWT_TOKEN}}",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["console.log('WebSocket connected');"],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listen taskCreated",
+      "request": {
+        "url": "ws://localhost:5000/socket.io/?EIO=4&transport=websocket&token={{JWT_TOKEN}}",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "message",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if(data.event === 'taskCreated'){",
+              "    console.log('Task Created:', data);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listen taskUpdated",
+      "request": {
+        "url": "ws://localhost:5000/socket.io/?EIO=4&transport=websocket&token={{JWT_TOKEN}}",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "message",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if(data.event === 'taskUpdated'){",
+              "    console.log('Task Updated:', data);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listen taskDeleted",
+      "request": {
+        "url": "ws://localhost:5000/socket.io/?EIO=4&transport=websocket&token={{JWT_TOKEN}}",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "message",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if(data.event === 'taskDeleted'){",
+              "    console.log('Task Deleted:', data);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listen onlineUsersUpdated (Admin)",
+      "request": {
+        "url": "ws://localhost:5000/socket.io/?EIO=4&transport=websocket&token={{JWT_TOKEN}}",
+        "method": "GET"
+      },
+      "event": [
+        {
+          "listen": "message",
+          "script": {
+            "exec": [
+              "const data = pm.response.json();",
+              "if(data.event === 'onlineUsersUpdated'){",
+              "    console.log('Online Users Updated:', data.onlineUsers);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Send test broadcast (REST)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"Hello from Postman!\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:5000/api/test/broadcast",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "test", "broadcast"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "JWT_TOKEN",
+      "value": ""
+    }
+  ]
+}
