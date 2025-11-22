@@ -2,7 +2,7 @@ import { io } from "socket.io-client";
 
 // Replace with a real JWT from your login response
 const token =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MWNmZWFiNWNmNGU4NzhiYzI5YTg5MiIsImlhdCI6MTc2Mzc1NzE1NCwiZXhwIjoxNzYzNzU4MDU0fQ.jC8snIDrvb1fmGvpGz6wj-O90ksfYvy7ALleTpCJgXE";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5MWNmZWFiNWNmNGU4NzhiYzI5YTg5MiIsImlhdCI6MTc2Mzc5ODI4NywiZXhwIjoxNzYzNzk5MTg3fQ.akV8DWhNs-pdmvmYswDwhn9UC6Uetljr9kN7JQQje5E";
 
 const socket = io("http://localhost:5000", {
   auth: { token },
